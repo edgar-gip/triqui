@@ -19,19 +19,19 @@ function triqui_load () {
 	# Process each directive
 	while read drc; do
 	    # Binary dir
-	    if [[ $drc =~ ^BIN[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+	    if [[ $drc =~ ^BIN[[:space:]]+(.+)$ ]]; then
 		# Add to PATH
 		export PATH="${PATH}:${BASH_REMATCH[1]}"
 		echo "Added binary dir ${BASH_REMATCH[1]} to PATH"
 
 	    # Include dir
-	    elif [[ $drc =~ ^INCLUDE[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+	    elif [[ $drc =~ ^INCLUDE[[:space:]]+(.+)$ ]]; then
 		# Add to CPPFLAGS
 		export CPPFLAGS="${CPPFLAGS} -I${BASH_REMATCH[1]}"
 		echo "Added include dir ${BASH_REMATCH[1]} to CPPFLAGS"
 
 	    # Library dir
-	    elif [[ $drc =~ ^LIB[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+	    elif [[ $drc =~ ^LIB[[:space:]]+(.+)$ ]]; then
 		# Add to LDFLAGS
 		export LDFLAGS="${LDFLAGS} -L${BASH_REMATCH[1]}"
 		echo "Added library dir ${BASH_REMATCH[1]} to LDFLAGS"
@@ -39,6 +39,12 @@ function triqui_load () {
 		# Add to LD_LIBRARY_PATH
 		export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${BASH_REMATCH[1]}"
 		echo "Added library dir ${BASH_REMATCH[1]} to LD_LIBRARY_PATH"
+
+	    # Variable
+	    elif [[ $drc =~ ^([A-Z_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+		# Set the variable
+		export ${BASH_REMATCH[1]}=${BASH_REMATCH[2]}
+		echo "Set variable ${BASH_REMATCH[1]} to ${BASH_REMATCH[2]}"
 
 	    # Other
 	    elif [[ ! $drc =~ ^[[:space:]]*$ ]]; then
@@ -80,7 +86,7 @@ function triqui_unload () {
 	    # Process each directive
 	    while read drc; do
 	        # Binary dir
-		if [[ $drc =~ ^BIN[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+		if [[ $drc =~ ^BIN[[:space:]]+(.+)$ ]]; then
 		    local dir="${BASH_REMATCH[1]}"
 
 		    # Remove from PATH
@@ -92,7 +98,7 @@ function triqui_unload () {
 		    fi
 
 	        # Include dir
-		elif [[ $drc =~ ^INCLUDE[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+		elif [[ $drc =~ ^INCLUDE[[:space:]]+(.+)$ ]]; then
 		    local dir="${BASH_REMATCH[1]}"
 
 		    # Remove from CPPFLAGS
@@ -104,7 +110,7 @@ function triqui_unload () {
 		    fi
 
 	        # Lib dir
-		elif [[ $drc =~ ^LIB[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+		elif [[ $drc =~ ^LIB[[:space:]]+(.+)$ ]]; then
 		    local dir="${BASH_REMATCH[1]}"
 
 		    # Remove from LDFLAGS
@@ -122,10 +128,16 @@ function triqui_unload () {
 		    else
 			echo "Lib dir $dir was not in LD_LIBRARY_PATH"
 		    fi
-		    
+
+	        # Variable
+		elif [[ $drc =~ ^([A-Z_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+		    # Set the variable
+		    export -n ${BASH_REMATCH[1]}=
+		    echo "Unset variable ${BASH_REMATCH[1]}"
+
 	        # Other
 		elif [[ ! $drc =~ ^[[:space:]]*$ ]]; then
-		# Warn
+		    # Warn
 		    echo "Ignored directive $drc"
 		fi
 	    done < ~/.triqui/$1.tri
@@ -184,17 +196,21 @@ function triqui_print () {
 	# Process each directive
 	while read drc; do
 	    # Binary dir
-	    if [[ $drc =~ ^BIN[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+	    if [[ $drc =~ ^BIN[[:space:]]+(.+)$ ]]; then
 		echo "Binary dir: ${BASH_REMATCH[1]}"
 
 	    # Include dir
-	    elif [[ $drc =~ ^INCLUDE[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+	    elif [[ $drc =~ ^INCLUDE[[:space:]]+(.+)$ ]]; then
 		echo "Include dir: ${BASH_REMATCH[1]}"
 
 	    # Lib dir
-	    elif [[ $drc =~ ^LIB[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+	    elif [[ $drc =~ ^LIB[[:space:]]+(.+)$ ]]; then
 		echo "Lib dir: ${BASH_REMATCH[1]}"
 	
+	    # Variable
+	    elif [[ $drc =~ ^([A-Z_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+		echo "Variable ${BASH_REMATCH[1]} = ${BASH_REMATCH[2]}"
+
 	    # Other
 	    elif [[ ! $drc =~ ^[[:space:]]*$ ]]; then
 		# Warn
