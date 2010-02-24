@@ -147,8 +147,8 @@ function triqui_ls () {
 }
 
 
-# print <module>
-function triqui_print () {
+# info <module>
+function triqui_info () {
     # Check the file exists
     if [[ ! -e ~/.triqui/$1.tri ]]; then
 	# Module does not exist
@@ -328,7 +328,11 @@ function triqui_autoload () {
 # Front-end function
 function triqui () {
     # Find the called function
-    if [[ "$1" = load ]]; then
+    if [[ "$1" = info ]]; then
+	# info <module>
+	triqui_info $2
+
+    elif [[ "$1" = load ]]; then
 	# load <module>
 	triqui_load $2
 
@@ -340,17 +344,13 @@ function triqui () {
 	# ls
 	triqui_ls
 
-    elif [[ "$1" = print ]]; then
-	# print <module>
-	triqui_print $2
-
     elif [[ "$1" = unload ]]; then
 	# unload <module>
 	triqui_unload $2
 
     else
 	# error!
-	echo "Usage: triqui [ <load|print|unload> <module> | loaded | ls ]"
+	echo "Usage: triqui [ <info|load|unload> <module> | loaded | ls ]"
     fi
 }
 
