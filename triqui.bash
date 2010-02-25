@@ -22,6 +22,125 @@ declare -A triqui_loaded_modules
 declare -A triqui_var_owner
 
 
+# Effective unload
+function _triqui_effective_unload() {
+    # Process each directive
+    while read drc; do
+	# Binary dir
+	if [[ $drc =~ ^BIN[[:space:]]+(.+)$ ]]; then
+	    local dir="${BASH_REMATCH[1]}"
+
+	    # Remove from PATH
+	    if [[ $PATH =~ ^(.*):$dir(.*)$ ]]; then
+		export PATH="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+		echo "Removed binary dir $dir from PATH"
+
+	    else
+		echo "Binary dir $dir was not in PATH"
+	    fi
+
+	# Include dir
+	elif [[ $drc =~ ^INCLUDE[[:space:]]+(.+)$ ]]; then
+	    local dir="${BASH_REMATCH[1]}"
+
+	    # Remove from CPPFLAGS
+	    if [[ $CPPFLAGS =~ ^(.*)[[:space:]]-I$dir(.*)$ ]]; then
+		export CPPFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+		echo "Removed include dir $dir from CPPFLAGS"
+
+	    else
+		echo "Include dir $dir was not in CPPFLAGS"
+	    fi
+
+	    # May clear it?
+	    if [[ -z $CPPFLAGS ]]; then
+		unset CPPFLAGS
+	    fi
+
+        # Lib dir
+	elif [[ $drc =~ ^LIB[[:space:]]+(.+)$ ]]; then
+	    local dir="${BASH_REMATCH[1]}"
+
+	    # Remove from LDFLAGS
+	    if [[ $LDFLAGS =~ ^(.*)[[:space:]]-L$dir(.*)$ ]]; then
+		export LDFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+		echo "Removed lib dir $dir from LDFLAGS"
+
+	    else
+		echo "Lib dir $dir was not in LDFLAGS"
+	    fi
+
+	    # May clear it?
+	    if [[ -z $LDFLAGS ]]; then
+		unset LDFLAGS
+	    fi
+
+	    # Remove from LD_LIBRARY_PATH
+	    if [[ $LD_LIBRARY_PATH =~ ^(.*):$dir(.*)$ ]]; then
+		export LD_LIBRARY_PATH="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+		echo "Removed lib dir $dir from LD_LIBRARY_PATH"
+	    else
+		echo "Lib dir $dir was not in LD_LIBRARY_PATH"
+	    fi
+
+	    # May clear it?
+	    if [[ -z $LD_LIBRARY_PATH ]]; then
+		unset LD_LIBRARY_PATH
+	    fi
+
+        # Variable
+	elif [[ $drc =~ ^([A-Z_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+	    local var=${BASH_REMATCH[1]}
+
+	    # Ensure we are the owners
+	    if [[ ${triqui_var_owner[$var]} = $1 ]]; then
+		# Unset the variable
+		unset $var
+		echo "Unset variable $var"
+
+		# Unown
+		triqui_var_owner[$var]=
+
+	    elif [[ -z ${triqui_var_owner[$var]} ]]; then
+		# Warn
+		echo "Value for variable $var ignored: owned by <unloaded-package>"
+
+	    else
+		# Warn
+		echo "Value for variable $var ignored: owned by ${triqui_var_owner[$var]}"
+	    fi
+
+        # Other
+	elif [[ ! ( $drc =~ ^[[:space:]]*$ || $drc =~ ^# ) ]]; then
+	    # Warn
+	    echo "Ignored directive $drc"
+	fi
+    done < ~/.triqui/$1.tri
+
+    # Clear the key
+    triqui_loaded_modules[$1]=
+}
+
+
+# clear
+function triqui_clear () {
+    # Effectively unload every module
+    for m in ${!triqui_loaded_modules[@]}; do
+	# Is it still active?
+	if [[ ! -z ${triqui_loaded_modules[$m]} ]]; then
+	    # Effectively unload
+	    _triqui_effective_unload $m
+
+ 	    # Success
+	    echo "Module $m unloaded"
+	fi
+    done
+
+    # Success
+    echo "All modules unloaded"
+}
+
+
 # load <module>
 function triqui_load () {
     # Check the file exists
@@ -102,27 +221,23 @@ function triqui_loaded () {
     # Modules
     local loaded=
 
-    # Does the ~/.triqui directory exist?
-    if [[ -d ~/.triqui ]]; then
-	# List the .tri files
-	local modules=`cd ~/.triqui; ls | perl -ne 'print "\$\` " if /.tri\$/'`;
-	if [[ ! -z $modules ]]; then
-	    for m in $modules; do
-		if [[ ! -z ${triqui_loaded_modules[$m]} ]]; then
-		    loaded="${loaded} $m(${triqui_loaded_modules[$m]})"
-		fi
-	    done
+    # For every loaded module
+    for m in ${!triqui_loaded_modules[@]}; do
+	# Is it still active?
+	if [[ ! -z ${triqui_loaded_modules[$m]} ]]; then
+	    # Add it
+	    loaded="${loaded} $m(${triqui_loaded_modules[$m]})"
 	fi
-    fi
+    done
 
     # Any module found?
     if [[ -z $loaded ]]; then
 	# No modules available
-	loaded='<none>';
+	loaded=' <none>';
     fi
 
     # Print
-    echo "Loaded modules: $loaded"
+    echo "Loaded modules:$loaded"
 }
 
 
@@ -158,9 +273,9 @@ function triqui_info () {
     else
 	# Is it loaded?
 	if [[ -z ${triqui_loaded_modules[$1]} ]]; then
-	    echo "Status: not loaded"
+	    echo "Module $1: not loaded"
 	else
-	    echo "Status: loaded (${triqui_loaded_modules[$1]} referers)"
+	    echo "Module $1: loaded (${triqui_loaded_modules[$1]} referers)"
 	fi
 
 	# Process each directive
@@ -211,87 +326,7 @@ function triqui_unload () {
 	# Is it zero?
 	if (( ${triqui_loaded_modules[$1]} == 0 )); then
 	    # Unload!
-
-	    # Process each directive
-	    while read drc; do
-	        # Binary dir
-		if [[ $drc =~ ^BIN[[:space:]]+(.+)$ ]]; then
-		    local dir="${BASH_REMATCH[1]}"
-
-		    # Remove from PATH
-		    if [[ $PATH =~ ^(.*):$dir(.*)$ ]]; then
-			export PATH="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
-			echo "Removed binary dir $dir from PATH"
-
-		    else
-			echo "Binary dir $dir was not in PATH"
-		    fi
-
-	        # Include dir
-		elif [[ $drc =~ ^INCLUDE[[:space:]]+(.+)$ ]]; then
-		    local dir="${BASH_REMATCH[1]}"
-
-		    # Remove from CPPFLAGS
-		    if [[ $CPPFLAGS =~ ^(.*)[[:space:]]-I$dir(.*)$ ]]; then
-			export CPPFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
-			echo "Removed include dir $dir from CPPFLAGS"
-
-		    else
-			echo "Include dir $dir was not in CPPFLAGS"
-		    fi
-
-	        # Lib dir
-		elif [[ $drc =~ ^LIB[[:space:]]+(.+)$ ]]; then
-		    local dir="${BASH_REMATCH[1]}"
-
-		    # Remove from LDFLAGS
-		    if [[ $LDFLAGS =~ ^(.*)[[:space:]]-L$dir(.*)$ ]]; then
-			export LDFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
-			echo "Removed lib dir $dir from LDFLAGS"
-
-		    else
-			echo "Lib dir $dir was not in LDFLAGS"
-		    fi
-
-		    # Remove from LD_LIBRARY_PATH
-		    if [[ $LD_LIBRARY_PATH =~ ^(.*):$dir(.*)$ ]]; then
-			export LD_LIBRARY_PATH="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
-			echo "Removed lib dir $dir from LD_LIBRARY_PATH"
-		    else
-			echo "Lib dir $dir was not in LD_LIBRARY_PATH"
-		    fi
-
-	        # Variable
-		elif [[ $drc =~ ^([A-Z_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
-		    local var=${BASH_REMATCH[1]}
-
-		    # Ensure we are the owners
-		    if [[ ${triqui_var_owner[$var]} = $1 ]]; then
-			# Unset the variable
-			export -n $var=
-			echo "Unset variable $var"
-
-			# Unown
-			triqui_var_owner[$var]=
-
-		    elif [[ -z ${triqui_var_owner[$var]} ]]; then
-			# Warn
-			echo "Value for variable $var ignored: owned by <unloaded-package>"
-
-		    else
-			# Warn
-			echo "Value for variable $var ignored: owned by ${triqui_var_owner[$var]}"
-		    fi
-
-	        # Other
-		elif [[ ! ( $drc =~ ^[[:space:]]*$ || $drc =~ ^# ) ]]; then
-		    # Warn
-		    echo "Ignored directive $drc"
-		fi
-	    done < ~/.triqui/$1.tri
-
-	    # Delete the key
-	    triqui_loaded_modules[$1]=
+	    _triqui_effective_unload $1
 
  	    # Success
 	    echo "Module $1 unloaded"
@@ -327,30 +362,43 @@ function triqui_autoload () {
 
 # Front-end function
 function triqui () {
+    local cmd=$1
+    shift
+
     # Find the called function
-    if [[ "$1" = info ]]; then
+    if [[ $cmd = clear ]]; then
+	# clear
+	triqui_clear
+
+    elif [[ "$1" = info ]]; then
 	# info <module>
-	triqui_info $2
+	for m in $@; do
+	    triqui_info $m
+	done
 
-    elif [[ "$1" = load ]]; then
-	# load <module>
-	triqui_load $2
+    elif [[ $cmd = load ]]; then
+	# load <module>...
+	for m in $@; do
+	    triqui_load $m
+	done
 
-    elif [[ "$1" = loaded ]]; then
+    elif [[ $cmd = loaded ]]; then
 	# loaded
 	triqui_loaded
 
-    elif [[ "$1" = ls ]]; then
+    elif [[ $cmd = ls ]]; then
 	# ls
 	triqui_ls
 
-    elif [[ "$1" = unload ]]; then
-	# unload <module>
-	triqui_unload $2
+    elif [[ $cmd = unload ]]; then
+	# unload <module>...
+	for m in $@; do
+	    triqui_unload $m
+	done
 
     else
 	# error!
-	echo "Usage: triqui [ <info|load|unload> <module> | loaded | ls ]"
+	echo "Usage: triqui <info|load|unload> <module> | clear | loaded | ls"
     fi
 }
 
