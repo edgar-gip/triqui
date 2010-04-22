@@ -370,7 +370,7 @@ function triqui () {
 	# clear
 	triqui_clear
 
-    elif [[ "$1" = info ]]; then
+    elif [[ $cmd = info ]]; then
 	# info <module>
 	for m in $@; do
 	    triqui_info $m
