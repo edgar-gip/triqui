@@ -24,11 +24,29 @@ declare -A triqui_var_owner
 
 # Effective unload
 function _triqui_effective_unload() {
+    # Variables to be removed
+    local -a removed_vars
+    local -i n_removed_vars
+
+    # Modules to be unloaded
+    local -a unloaded_mods
+    local -i n_unloaded_mods
+
     # Process each directive
     while read drc; do
+	# Using of other modules
+	if [[ $drc =~ ^USE[[:space:]]+(.+)$ ]]; then
+	    local mods="${BASH_REMATCH[1]}"
+
+	    # Schedule for unload
+	    for m in $mods; do
+		unloaded_mods[$n_unloaded_mods]=$m
+		n_unloaded_mods=$n_unloaded_mods+1
+	    done
+
 	# Binary dir
-	if [[ $drc =~ ^BIN[[:space:]]+(.+)$ ]]; then
-	    local dir="${BASH_REMATCH[1]}"
+	elif [[ $drc =~ ^BIN[[:space:]]+(.+)$ ]]; then
+	    local dir=`eval echo "${BASH_REMATCH[1]}"`
 
 	    # Remove from PATH
 	    if [[ $PATH =~ ^(.*):$dir(.*)$ ]]; then
@@ -41,7 +59,7 @@ function _triqui_effective_unload() {
 
 	# Include dir
 	elif [[ $drc =~ ^INCLUDE[[:space:]]+(.+)$ ]]; then
-	    local dir="${BASH_REMATCH[1]}"
+	    local dir=`eval echo "${BASH_REMATCH[1]}"`
 
 	    # Remove from CPPFLAGS
 	    if [[ $CPPFLAGS =~ ^(.*)[[:space:]]-I$dir(.*)$ ]]; then
@@ -59,7 +77,7 @@ function _triqui_effective_unload() {
 
         # Lib dir
 	elif [[ $drc =~ ^LIB[[:space:]]+(.+)$ ]]; then
-	    local dir="${BASH_REMATCH[1]}"
+	    local dir=`eval echo "${BASH_REMATCH[1]}"`
 
 	    # Remove from LDFLAGS
 	    if [[ $LDFLAGS =~ ^(.*)[[:space:]]-L$dir(.*)$ ]]; then
@@ -94,20 +112,17 @@ function _triqui_effective_unload() {
 
 	    # Ensure we are the owners
 	    if [[ ${triqui_var_owner[$var]} = $1 ]]; then
-		# Unset the variable
-		unset $var
-		echo "Unset variable $var"
-
-		# Unown
-		triqui_var_owner[$var]=
+		# Schedule for removal
+		removed_vars[$n_removed_vars]=$var
+		n_removed_vars=$n_removed_vars+1
 
 	    elif [[ -z ${triqui_var_owner[$var]} ]]; then
 		# Warn
-		echo "Value for variable $var ignored: owned by <unloaded-package>"
+		echo "Removal of variable $var skipped: owned by <unloaded-package>"
 
 	    else
 		# Warn
-		echo "Value for variable $var ignored: owned by ${triqui_var_owner[$var]}"
+		echo "Removal of variable $var skipped: owned by ${triqui_var_owner[$var]}"
 	    fi
 
         # Other
@@ -116,6 +131,18 @@ function _triqui_effective_unload() {
 	    echo "Ignored directive $drc"
 	fi
     done < ~/.triqui/$1.tri
+
+    # Effectively unset and unown variables
+    for var in ${removed_vars[*]}; do
+	unset $var
+	triqui_var_owner[$var]=
+	echo "Removed variable $var"
+    done
+
+    # Effectively unload modules
+    for m in ${unloaded_mods[*]}; do
+	triqui_unload $m;
+    done
 
     # Clear the key
     triqui_loaded_modules[$1]=
@@ -158,33 +185,48 @@ function triqui_load () {
     else
 	# Process each directive
 	while read drc; do
+ 	    # Using of other modules
+	    if [[ $drc =~ ^USE[[:space:]]+(.+)$ ]]; then
+		local mods="${BASH_REMATCH[1]}"
+
+ 	        # Load
+		for m in $mods; do
+		    triqui_load $m;
+		done
+
 	    # Binary dir
-	    if [[ $drc =~ ^BIN[[:space:]]+(.+)$ ]]; then
+	    elif [[ $drc =~ ^BIN[[:space:]]+(.+)$ ]]; then
+		local dir=`eval echo "${BASH_REMATCH[1]}"`
+
 		# Add to PATH
-		export PATH="${PATH}:${BASH_REMATCH[1]}"
-		echo "Added binary dir ${BASH_REMATCH[1]} to PATH"
+		export PATH="${PATH}:$dir"
+		echo "Added binary dir $dir to PATH"
 
 	    # Include dir
 	    elif [[ $drc =~ ^INCLUDE[[:space:]]+(.+)$ ]]; then
+		local dir=`eval echo "${BASH_REMATCH[1]}"`
+
 		# Add to CPPFLAGS
-		export CPPFLAGS="${CPPFLAGS} -I${BASH_REMATCH[1]}"
-		echo "Added include dir ${BASH_REMATCH[1]} to CPPFLAGS"
+		export CPPFLAGS="${CPPFLAGS} -I$dir"
+		echo "Added include dir $dir to CPPFLAGS"
 
 	    # Library dir
 	    elif [[ $drc =~ ^LIB[[:space:]]+(.+)$ ]]; then
+		local dir=`eval echo "${BASH_REMATCH[1]}"`
+
 		# Add to LDFLAGS
-		export LDFLAGS="${LDFLAGS} -L${BASH_REMATCH[1]}"
-		echo "Added library dir ${BASH_REMATCH[1]} to LDFLAGS"
+		export LDFLAGS="${LDFLAGS} -L$dir"
+		echo "Added library dir $dir to LDFLAGS"
 
 		# Add to LD_LIBRARY_PATH
-		export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${BASH_REMATCH[1]}"
-		echo "Added library dir ${BASH_REMATCH[1]} to LD_LIBRARY_PATH"
+		export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$dir"
+		echo "Added library dir $dir to LD_LIBRARY_PATH"
 
 	    # Variable
 	    elif [[ $drc =~ ^([A-Z_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
 		# Var and value
 		local var=${BASH_REMATCH[1]}
-		local value=${BASH_REMATCH[2]}
+		local value=`eval echo ${BASH_REMATCH[2]}`
 
 		# Ensure it is not owned by somebody else
 		if [[ -z ${triqui_var_owner[$var]} ]]; then
@@ -280,8 +322,12 @@ function triqui_info () {
 
 	# Process each directive
 	while read drc; do
+	    # Using of other modules
+	    if [[ $drc =~ ^USE[[:space:]]+(.+)$ ]]; then
+		echo "Loaded modules: ${BASH_REMATCH[1]}"
+
 	    # Binary dir
-	    if [[ $drc =~ ^BIN[[:space:]]+(.+)$ ]]; then
+	    elif [[ $drc =~ ^BIN[[:space:]]+(.+)$ ]]; then
 		echo "Binary dir: ${BASH_REMATCH[1]}"
 
 	    # Include dir
