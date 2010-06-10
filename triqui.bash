@@ -107,7 +107,7 @@ function _triqui_effective_unload() {
 	    fi
 
         # Variable
-	elif [[ $drc =~ ^([A-Z_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+	elif [[ $drc =~ ^([A-Za-z_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
 	    local var=${BASH_REMATCH[1]}
 
 	    # Ensure we are the owners
@@ -223,7 +223,7 @@ function triqui_load () {
 		echo "Added library dir $dir to LD_LIBRARY_PATH"
 
 	    # Variable
-	    elif [[ $drc =~ ^([A-Z_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+	    elif [[ $drc =~ ^([A-Za-z_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
 		# Var and value
 		local var=${BASH_REMATCH[1]}
 		local value=`eval echo ${BASH_REMATCH[2]}`
@@ -339,7 +339,7 @@ function triqui_info () {
 		echo "Lib dir: ${BASH_REMATCH[1]}"
 	
 	    # Variable
-	    elif [[ $drc =~ ^([A-Z_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+	    elif [[ $drc =~ ^([A-Za-z_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
 		echo "Variable ${BASH_REMATCH[1]} = ${BASH_REMATCH[2]}"
 
 	    # Other
