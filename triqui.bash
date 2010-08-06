@@ -106,6 +106,19 @@ function _triqui_effective_unload() {
 		unset LD_LIBRARY_PATH
 	    fi
 
+	# Man dir
+	elif [[ $drc =~ ^MAN[[:space:]]+(.+)$ ]]; then
+	    local dir=`eval echo "${BASH_REMATCH[1]}"`
+
+	    # Remove from MANPATH
+	    if [[ $MANPATH =~ ^(.*):$dir(.*)$ ]]; then
+		export MANPATH="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+		echo "Removed manpage dir $dir from MANPATH"
+
+	    else
+		echo "Manpage dir $dir was not in MANPATH"
+	    fi
+
         # Variable
 	elif [[ $drc =~ ^([A-Za-z_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
 	    local var=${BASH_REMATCH[1]}
@@ -221,6 +234,14 @@ function triqui_load () {
 		# Add to LD_LIBRARY_PATH
 		export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$dir"
 		echo "Added library dir $dir to LD_LIBRARY_PATH"
+
+	    # Man dir
+	    elif [[ $drc =~ ^MAN[[:space:]]+(.+)$ ]]; then
+		local dir=`eval echo "${BASH_REMATCH[1]}"`
+
+		# Add to MANPATH
+		export MANPATH="${MANPATH}:$dir"
+		echo "Added manpage dir $dir to MANPATH"
 
 	    # Variable
 	    elif [[ $drc =~ ^([A-Za-z_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
@@ -338,6 +359,10 @@ function triqui_info () {
 	    elif [[ $drc =~ ^LIB[[:space:]]+(.+)$ ]]; then
 		echo "Lib dir: ${BASH_REMATCH[1]}"
 	
+	    # Man dir
+	    elif [[ $drc =~ ^MAN[[:space:]]+(.+)$ ]]; then
+		echo "Manpage dir: ${BASH_REMATCH[1]}"
+
 	    # Variable
 	    elif [[ $drc =~ ^([A-Za-z_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
 		echo "Variable ${BASH_REMATCH[1]} = ${BASH_REMATCH[2]}"
