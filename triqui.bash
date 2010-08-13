@@ -57,6 +57,19 @@ function _triqui_effective_unload() {
 		echo "Binary dir $dir was not in PATH"
 	    fi
 
+	# Preemptive binary dir
+	elif [[ $drc =~ ^PREBIN[[:space:]]+(.+)$ ]]; then
+	    local dir=`eval echo "${BASH_REMATCH[1]}"`
+
+	    # Remove from PATH
+	    if [[ $PATH =~ ^(.*)$dir:(.*)$ ]]; then
+		export PATH="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+		echo "Removed preemptive binary dir $dir from PATH"
+
+	    else
+		echo "Preemptive binary dir $dir was not in PATH"
+	    fi
+
 	# Include dir
 	elif [[ $drc =~ ^INCLUDE[[:space:]]+(.+)$ ]]; then
 	    local dir=`eval echo "${BASH_REMATCH[1]}"`
@@ -99,6 +112,37 @@ function _triqui_effective_unload() {
 		echo "Removed lib dir $dir from LD_LIBRARY_PATH"
 	    else
 		echo "Lib dir $dir was not in LD_LIBRARY_PATH"
+	    fi
+
+	    # May clear it?
+	    if [[ -z $LD_LIBRARY_PATH ]]; then
+		unset LD_LIBRARY_PATH
+	    fi
+
+        # Preemptive lib dir
+	elif [[ $drc =~ ^PRELIB[[:space:]]+(.+)$ ]]; then
+	    local dir=`eval echo "${BASH_REMATCH[1]}"`
+
+	    # Remove from LDFLAGS
+	    if [[ $LDFLAGS =~ ^(.*)-L$dir[[:space:]](.*)$ ]]; then
+		export LDFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+		echo "Removed preemptive lib dir $dir from LDFLAGS"
+
+	    else
+		echo "Preemptive lib dir $dir was not in LDFLAGS"
+	    fi
+
+	    # May clear it?
+	    if [[ -z $LDFLAGS ]]; then
+		unset LDFLAGS
+	    fi
+
+	    # Remove from LD_LIBRARY_PATH
+	    if [[ $LD_LIBRARY_PATH =~ ^(.*)$dir:(.*)$ ]]; then
+		export LD_LIBRARY_PATH="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+		echo "Removed preemptive lib dir $dir from LD_LIBRARY_PATH"
+	    else
+		echo "Preemptive lib dir $dir was not in LD_LIBRARY_PATH"
 	    fi
 
 	    # May clear it?
@@ -215,6 +259,14 @@ function triqui_load () {
 		export PATH="${PATH}:$dir"
 		echo "Added binary dir $dir to PATH"
 
+	    # Preemptive binary dir
+	    elif [[ $drc =~ ^PREBIN[[:space:]]+(.+)$ ]]; then
+		local dir=`eval echo "${BASH_REMATCH[1]}"`
+
+		# Add to PATH
+		export PATH="$dir:${PATH}"
+		echo "Added preemptive binary dir $dir to PATH"
+
 	    # Include dir
 	    elif [[ $drc =~ ^INCLUDE[[:space:]]+(.+)$ ]]; then
 		local dir=`eval echo "${BASH_REMATCH[1]}"`
@@ -234,6 +286,18 @@ function triqui_load () {
 		# Add to LD_LIBRARY_PATH
 		export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$dir"
 		echo "Added library dir $dir to LD_LIBRARY_PATH"
+
+	    # Preemptive library dir
+	    elif [[ $drc =~ ^PRELIB[[:space:]]+(.+)$ ]]; then
+		local dir=`eval echo "${BASH_REMATCH[1]}"`
+
+		# Add to LDFLAGS
+		export LDFLAGS="-L$dir ${LDFLAGS}"
+		echo "Added preemptive library dir $dir to LDFLAGS"
+
+		# Add to LD_LIBRARY_PATH
+		export LD_LIBRARY_PATH="$dir:${LD_LIBRARY_PATH}"
+		echo "Added preemptive library dir $dir to LD_LIBRARY_PATH"
 
 	    # Man dir
 	    elif [[ $drc =~ ^MAN[[:space:]]+(.+)$ ]]; then
@@ -351,6 +415,10 @@ function triqui_info () {
 	    elif [[ $drc =~ ^BIN[[:space:]]+(.+)$ ]]; then
 		echo "Binary dir: ${BASH_REMATCH[1]}"
 
+	    # Preemptive binary dir
+	    elif [[ $drc =~ ^PREBIN[[:space:]]+(.+)$ ]]; then
+		echo "Preemptive binary dir: ${BASH_REMATCH[1]}"
+
 	    # Include dir
 	    elif [[ $drc =~ ^INCLUDE[[:space:]]+(.+)$ ]]; then
 		echo "Include dir: ${BASH_REMATCH[1]}"
@@ -358,6 +426,10 @@ function triqui_info () {
 	    # Lib dir
 	    elif [[ $drc =~ ^LIB[[:space:]]+(.+)$ ]]; then
 		echo "Lib dir: ${BASH_REMATCH[1]}"
+
+	    # Preemptive lib dir
+	    elif [[ $drc =~ ^PRELIB[[:space:]]+(.+)$ ]]; then
+		echo "Preemptive lib dir: ${BASH_REMATCH[1]}"
 	
 	    # Man dir
 	    elif [[ $drc =~ ^MAN[[:space:]]+(.+)$ ]]; then
