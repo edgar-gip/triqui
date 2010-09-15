@@ -164,7 +164,7 @@ function _triqui_effective_unload() {
 	    fi
 
         # Variable
-	elif [[ $drc =~ ^([A-Za-z_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+	elif [[ $drc =~ ^([A-Za-z0-9_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
 	    local var=${BASH_REMATCH[1]}
 
 	    # Ensure we are the owners
@@ -308,7 +308,7 @@ function triqui_load () {
 		echo "Added manpage dir $dir to MANPATH"
 
 	    # Variable
-	    elif [[ $drc =~ ^([A-Za-z_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+	    elif [[ $drc =~ ^([A-Za-z0-9_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
 		# Var and value
 		local var=${BASH_REMATCH[1]}
 		local value=`eval echo ${BASH_REMATCH[2]}`
@@ -436,7 +436,7 @@ function triqui_info () {
 		echo "Manpage dir: ${BASH_REMATCH[1]}"
 
 	    # Variable
-	    elif [[ $drc =~ ^([A-Za-z_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+	    elif [[ $drc =~ ^([A-Za-z0-9_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
 		echo "Variable ${BASH_REMATCH[1]} = ${BASH_REMATCH[2]}"
 
 	    # Other
