@@ -163,6 +163,19 @@ function _triqui_effective_unload() {
 		echo "Manpage dir $dir was not in MANPATH"
 	    fi
 
+	# Pkg-config dir
+	elif [[ $drc =~ ^PKG-CONFIG[[:space:]]+(.+)$ ]]; then
+	    local dir=`eval echo "${BASH_REMATCH[1]}"`
+
+	    # Remove from PKG_CONFIG_PATH
+	    if [[ $PKG_CONFIG_PATH =~ ^(.*):$dir(.*)$ ]]; then
+		export PKG_CONFIG_PATH="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+		echo "Removed pkg-config dir $dir from PKG_CONFIG_PATH"
+
+	    else
+		echo "pkg-config dir $dir was not in PKG_CONFIG_PATH"
+	    fi
+
         # Variable
 	elif [[ $drc =~ ^([A-Za-z0-9_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
 	    local var=${BASH_REMATCH[1]}
@@ -307,6 +320,14 @@ function triqui_load () {
 		export MANPATH="${MANPATH}:$dir"
 		echo "Added manpage dir $dir to MANPATH"
 
+	    # Pkg-config dir
+	    elif [[ $drc =~ ^PKG-CONFIG[[:space:]]+(.+)$ ]]; then
+		local dir=`eval echo "${BASH_REMATCH[1]}"`
+
+		# Add to PKG_CONFIG_PATH
+		export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:$dir"
+		echo "Added pkg-config dir $dir to PKG_CONFIG_PATH"
+
 	    # Variable
 	    elif [[ $drc =~ ^([A-Za-z0-9_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
 		# Var and value
@@ -434,6 +455,10 @@ function triqui_info () {
 	    # Man dir
 	    elif [[ $drc =~ ^MAN[[:space:]]+(.+)$ ]]; then
 		echo "Manpage dir: ${BASH_REMATCH[1]}"
+
+	    # Pkg-config dir
+	    elif [[ $drc =~ ^PKG-CONFIG[[:space:]]+(.+)$ ]]; then
+		echo "Pkg-config dir: ${BASH_REMATCH[1]}"
 
 	    # Variable
 	    elif [[ $drc =~ ^([A-Za-z0-9_]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
