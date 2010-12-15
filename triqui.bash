@@ -163,6 +163,19 @@ function _triqui_effective_unload() {
 		echo "Manpage dir $dir was not in MANPATH"
 	    fi
 
+	# Perl5 dir
+	elif [[ $drc =~ ^PERL5[[:space:]]+(.+)$ ]]; then
+	    local dir=`eval echo "${BASH_REMATCH[1]}"`
+
+	    # Remove from PERL5LIB
+	    if [[ $PERL5LIB =~ ^(.*):$dir(.*)$ ]]; then
+		export PERL5LIB="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+		echo "Removed perl5 dir $dir from PERL5LIB"
+
+	    else
+		echo "Perl5 dir $dir was not in PERL5LIB"
+	    fi
+
 	# Pkg-config dir
 	elif [[ $drc =~ ^PKG-CONFIG[[:space:]]+(.+)$ ]]; then
 	    local dir=`eval echo "${BASH_REMATCH[1]}"`
@@ -320,6 +333,14 @@ function triqui_load () {
 		export MANPATH="${MANPATH}:$dir"
 		echo "Added manpage dir $dir to MANPATH"
 
+	    # Perl5 dir
+	    elif [[ $drc =~ ^PERL5[[:space:]]+(.+)$ ]]; then
+		local dir=`eval echo "${BASH_REMATCH[1]}"`
+
+		# Add to PERL5LIB
+		export PERL5LIB="${PERL5LIB}:$dir"
+		echo "Added perl5 dir $dir to PERL5LIB"
+
 	    # Pkg-config dir
 	    elif [[ $drc =~ ^PKG-CONFIG[[:space:]]+(.+)$ ]]; then
 		local dir=`eval echo "${BASH_REMATCH[1]}"`
@@ -451,10 +472,14 @@ function triqui_info () {
 	    # Preemptive lib dir
 	    elif [[ $drc =~ ^PRELIB[[:space:]]+(.+)$ ]]; then
 		echo "Preemptive lib dir: ${BASH_REMATCH[1]}"
-	
+
 	    # Man dir
 	    elif [[ $drc =~ ^MAN[[:space:]]+(.+)$ ]]; then
 		echo "Manpage dir: ${BASH_REMATCH[1]}"
+
+	    # Perl5 dir
+	    elif [[ $drc =~ ^PERL5[[:space:]]+(.+)$ ]]; then
+		echo "Perl5 dir: ${BASH_REMATCH[1]}"
 
 	    # Pkg-config dir
 	    elif [[ $drc =~ ^PKG-CONFIG[[:space:]]+(.+)$ ]]; then
