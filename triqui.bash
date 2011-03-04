@@ -58,7 +58,7 @@ function _triqui_effective_unload() {
 	    fi
 
 	# Preemptive binary dir
-	elif [[ $drc =~ ^PREBIN[[:space:]]+(.+)$ ]]; then
+	elif [[ $drc =~ ^-BIN[[:space:]]+(.+)$ ]]; then
 	    local dir=`eval echo "${BASH_REMATCH[1]}"`
 
 	    # Remove from PATH
@@ -120,7 +120,7 @@ function _triqui_effective_unload() {
 	    fi
 
         # Preemptive lib dir
-	elif [[ $drc =~ ^PRELIB[[:space:]]+(.+)$ ]]; then
+	elif [[ $drc =~ ^-LIB[[:space:]]+(.+)$ ]]; then
 	    local dir=`eval echo "${BASH_REMATCH[1]}"`
 
 	    # Remove from LDFLAGS
@@ -169,6 +169,19 @@ function _triqui_effective_unload() {
 
 	    # Remove from PERL5LIB
 	    if [[ $PERL5LIB =~ ^(.*):$dir(.*)$ ]]; then
+		export PERL5LIB="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+		echo "Removed perl5 dir $dir from PERL5LIB"
+
+	    else
+		echo "Perl5 dir $dir was not in PERL5LIB"
+	    fi
+
+	# Preemptive perl5 dir
+	elif [[ $drc =~ ^-PERL5[[:space:]]+(.+)$ ]]; then
+	    local dir=`eval echo "${BASH_REMATCH[1]}"`
+
+	    # Remove from PERL5LIB
+	    if [[ $PERL5LIB =~ ^(.*)$dir:(.*)$ ]]; then
 		export PERL5LIB="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
 		echo "Removed perl5 dir $dir from PERL5LIB"
 
@@ -286,7 +299,7 @@ function triqui_load () {
 		echo "Added binary dir $dir to PATH"
 
 	    # Preemptive binary dir
-	    elif [[ $drc =~ ^PREBIN[[:space:]]+(.+)$ ]]; then
+	    elif [[ $drc =~ ^-BIN[[:space:]]+(.+)$ ]]; then
 		local dir=`eval echo "${BASH_REMATCH[1]}"`
 
 		# Add to PATH
@@ -314,7 +327,7 @@ function triqui_load () {
 		echo "Added library dir $dir to LD_LIBRARY_PATH"
 
 	    # Preemptive library dir
-	    elif [[ $drc =~ ^PRELIB[[:space:]]+(.+)$ ]]; then
+	    elif [[ $drc =~ ^-LIB[[:space:]]+(.+)$ ]]; then
 		local dir=`eval echo "${BASH_REMATCH[1]}"`
 
 		# Add to LDFLAGS
@@ -341,6 +354,14 @@ function triqui_load () {
 		export PERL5LIB="${PERL5LIB}:$dir"
 		echo "Added perl5 dir $dir to PERL5LIB"
 
+	    # Preemptive perl5 dir
+	    elif [[ $drc =~ ^-PERL5[[:space:]]+(.+)$ ]]; then
+		local dir=`eval echo "${BASH_REMATCH[1]}"`
+
+		# Add to PERL5LIB
+		export PERL5LIB="$dir:${PERL5LIB}"
+		echo "Added perl5 dir $dir to PERL5LIB"
+
 	    # Pkg-config dir
 	    elif [[ $drc =~ ^PKG-CONFIG[[:space:]]+(.+)$ ]]; then
 		local dir=`eval echo "${BASH_REMATCH[1]}"`
@@ -358,7 +379,7 @@ function triqui_load () {
 		# Ensure it is not owned by somebody else
 		if [[ -z ${triqui_var_owner[$var]} ]]; then
 		    # Set the variable
-		    export $var=$value
+		    export $var="$value"
 		    echo "Set variable $var to $value"
 
 		    # Own it
@@ -458,7 +479,7 @@ function triqui_info () {
 		echo "Binary dir: ${BASH_REMATCH[1]}"
 
 	    # Preemptive binary dir
-	    elif [[ $drc =~ ^PREBIN[[:space:]]+(.+)$ ]]; then
+	    elif [[ $drc =~ ^-BIN[[:space:]]+(.+)$ ]]; then
 		echo "Preemptive binary dir: ${BASH_REMATCH[1]}"
 
 	    # Include dir
@@ -470,7 +491,7 @@ function triqui_info () {
 		echo "Lib dir: ${BASH_REMATCH[1]}"
 
 	    # Preemptive lib dir
-	    elif [[ $drc =~ ^PRELIB[[:space:]]+(.+)$ ]]; then
+	    elif [[ $drc =~ ^-LIB[[:space:]]+(.+)$ ]]; then
 		echo "Preemptive lib dir: ${BASH_REMATCH[1]}"
 
 	    # Man dir
@@ -480,6 +501,10 @@ function triqui_info () {
 	    # Perl5 dir
 	    elif [[ $drc =~ ^PERL5[[:space:]]+(.+)$ ]]; then
 		echo "Perl5 dir: ${BASH_REMATCH[1]}"
+
+	    # Preemptive perl5 dir
+	    elif [[ $drc =~ ^-PERL5[[:space:]]+(.+)$ ]]; then
+		echo "Preemptive perl5 dir: ${BASH_REMATCH[1]}"
 
 	    # Pkg-config dir
 	    elif [[ $drc =~ ^PKG-CONFIG[[:space:]]+(.+)$ ]]; then
