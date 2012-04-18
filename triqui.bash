@@ -44,6 +44,19 @@ function _triqui_effective_unload() {
 		n_unloaded_mods=$n_unloaded_mods+1
 	    done
 
+	# Aclocal dir
+	elif [[ $drc =~ ^ACLOCAL[[:space:]]+(.+)$ ]]; then
+	    local dir=`eval echo "${BASH_REMATCH[1]}"`
+
+	    # Remove from ACLOCAL_PATH
+	    if [[ $ACLOCAL_PATH =~ ^(.*):$dir(.*)$ ]]; then
+		export ACLOCAL_PATH="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+		echo "Removed aclocal dir $dir from ACLOCAL_PATH"
+
+	    else
+		echo "Aclocal $dir was not in ACLOCAL_PATH"
+	    fi
+
 	# Binary dir
 	elif [[ $drc =~ ^BIN[[:space:]]+(.+)$ ]]; then
 	    local dir=`eval echo "${BASH_REMATCH[1]}"`
@@ -290,6 +303,14 @@ function triqui_load () {
 		    triqui_load $m;
 		done
 
+	    # Aclocal dir
+	    elif [[ $drc =~ ^ACLOCAL[[:space:]]+(.+)$ ]]; then
+		local dir=`eval echo "${BASH_REMATCH[1]}"`
+
+		# Add to ACLOCAL_PATH
+		export ACLOCAL_PATH="${ACLOCAL_PATH}:$dir"
+		echo "Added aclocal dir $dir to ACLOCAL_PATH"
+
 	    # Binary dir
 	    elif [[ $drc =~ ^BIN[[:space:]]+(.+)$ ]]; then
 		local dir=`eval echo "${BASH_REMATCH[1]}"`
@@ -473,6 +494,10 @@ function triqui_info () {
 	    # Using of other modules
 	    if [[ $drc =~ ^USE[[:space:]]+(.+)$ ]]; then
 		echo "Loaded modules: ${BASH_REMATCH[1]}"
+
+	    # Aclocal dir
+	    elif [[ $drc =~ ^ACLOCAL[[:space:]]+(.+)$ ]]; then
+		echo "Aclocal dir: ${BASH_REMATCH[1]}"
 
 	    # Binary dir
 	    elif [[ $drc =~ ^BIN[[:space:]]+(.+)$ ]]; then
