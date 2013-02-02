@@ -176,6 +176,19 @@ function _triqui_effective_unload() {
 		echo "Manpage dir $dir was not in MANPATH"
 	    fi
 
+	# Info dir
+	elif [[ $drc =~ ^INFO[[:space:]]+(.+)$ ]]; then
+	    local dir=`eval echo "${BASH_REMATCH[1]}"`
+
+	    # Remove from INFOPATH
+	    if [[ $INFOPATH =~ ^(.*):$dir(.*)$ ]]; then
+		export INFOPATH="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+		echo "Removed info dir $dir from INFOPATH"
+
+	    else
+		echo "Info dir $dir was not in INFOPATH"
+	    fi
+
 	# Perl5 dir
 	elif [[ $drc =~ ^PERL5[[:space:]]+(.+)$ ]]; then
 	    local dir=`eval echo "${BASH_REMATCH[1]}"`
@@ -367,6 +380,14 @@ function triqui_load () {
 		export MANPATH="${MANPATH}:$dir"
 		echo "Added manpage dir $dir to MANPATH"
 
+	    # Info dir
+	    elif [[ $drc =~ ^INFO[[:space:]]+(.+)$ ]]; then
+		local dir=`eval echo "${BASH_REMATCH[1]}"`
+
+		# Add to INFOPATH
+		export INFOPATH="${INFOPATH}:$dir"
+		echo "Added info dir $dir to INFOPATH"
+
 	    # Perl5 dir
 	    elif [[ $drc =~ ^PERL5[[:space:]]+(.+)$ ]]; then
 		local dir=`eval echo "${BASH_REMATCH[1]}"`
@@ -522,6 +543,10 @@ function triqui_info () {
 	    # Man dir
 	    elif [[ $drc =~ ^MAN[[:space:]]+(.+)$ ]]; then
 		echo "Manpage dir: ${BASH_REMATCH[1]}"
+
+	    # Info dir
+	    elif [[ $drc =~ ^INFO[[:space:]]+(.+)$ ]]; then
+		echo "Info dir: ${BASH_REMATCH[1]}"
 
 	    # Perl5 dir
 	    elif [[ $drc =~ ^PERL5[[:space:]]+(.+)$ ]]; then
