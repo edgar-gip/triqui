@@ -1,4 +1,4 @@
-# Copyright (C) 2010 Edgar Gonzàlez i Pellicer <edgar.gip@gmail.com>
+# Copyright (C) 2010-2016  Edgar Gonzàlez i Pellicer <edgar.gip@gmail.com>
 #
 # This file is part of triqui-0.1.
 #
